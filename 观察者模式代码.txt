@@ -1,0 +1,141 @@
+代码1：
+import  org.apache.http.Consts ;
+import  org.apache.http.NameValuePair ;
+import  org.apache.http.client.config.CookieSpecs ;
+import  org.apache.http.client.config.RequestConfig ;
+import  org.apache.http.client.entity.UrlEncodedFormEntity ;
+import  org.apache.http.client.methods.CloseableHttpResponse ;
+import  org.apache.http.client.methods.HttpGet ;
+import  org.apache.http.client.methods.HttpPost ;
+import  org.apache.http.impl.client.CloseableHttpClient ;
+import  org.apache.http.impl.client.HttpClients ;
+import  org.apache.http.impl.client.SystemDefaultCredentialsProvider ;
+import  org.apache.http.message.BasicNameValuePair ;
+import  org.apache.http.util.EntityUtils ;
+
+import  java.io.File ;
+import  java.io.FileOutputStream ;
+import  java.io.IOException ;
+import  java.util.LinkedList ;
+import  java.util.List ;
+import  java.util.Scanner ;
+
+公共 类 主要 {
+    public  static  void  main（String [] args）{
+        RequestConfig requestConfig =  RequestConfig 。custom（）。setCookieSpec（CookieSpecs 。 STANDARD_STRICT）。建立（）;
+        CloseableHttpClient httpClient =  HttpClients 。custom（）。setDefaultRequestConfig（requestConfig）。建立（）;
+
+        HttpGet getHomePage =  new  HttpGet（“ http://www.zhihu.com/ ”）;
+        尝试 {
+            //填充登陆请求中基本的参数
+            CloseableHttpResponse response = httpClient 。执行（getHomePage）;
+            String responseHtml =  EntityUtils 。的toString（响应。 getEntity（））;
+            String xsrfValue = responseHtml 。分裂（“ <INPUT TYPE = \”隐藏\ “ NAME = \” _xsrf \ “值= \” “）[ 1 ] 。分裂（” \ “ /> ”）[ 0 ];
+            系统。出。println（“ _xsrf：”  + xsrfValue）;
+            回应。关（）;
+            列表< NameValuePair > valuePairs =  new  LinkedList < NameValuePair >（）;
+            valuePairs 。add（new  BasicNameValuePair（“ _xsrf ”，xsrfValue））;
+            valuePairs 。add（new  BasicNameValuePair（“ email ”，用户名））;
+            valuePairs 。add（new  BasicNameValuePair（“ password ”，密码））;
+            valuePairs 。add（new  BasicNameValuePair（“ rememberme ”，“ true ”））;
+
+            //获取验证码
+            HTTPGET getCaptcha =  新 HTTPGET（“ http://www.zhihu.com/captcha.gif?r= ”  +  系统。的currentTimeMillis（）+  “＆类型=登录”）;
+            CloseableHttpResponse imageResponse = httpClient 。执行（getCaptcha）;
+            FileOutputStream out =  new  FileOutputStream（“/ tmp/zhihu.gif ”）;
+            byte [] bytes =  new  byte [ 8192 ];
+            int len
+            而（（LEN = imageResponse 。 getEntity（） 。的getContent（） 。读取（字节））！=  - 1）{
+                出。write（bytes，0，len）;
+            }
+            出。关（）;
+            运行。getRuntime（）。exec（“ eog /tmp/zhihu.gif ”）; // ubuntu下看图片的命令是eog
+
+            //请用户输入验证码
+            系统。出。print（“请输入验证码：”）;
+            扫描器扫描器=  新 扫描仪（系统。在）;
+            字符串 captcha =扫描仪。下一个（）;
+            valuePairs 。add（new  BasicNameValuePair（“ captcha ”，captcha））;
+
+            //完成登陆请求的构造
+            UrlEncodedFormEntity实体=  新 UrlEncodedFormEntity（valuePairs，Consts 。 UTF_8）;
+            HttpPost post =  new  HttpPost（“ http://www.zhihu.com/login/email ”）;
+            岗位。setEntity（实体）;
+            httpClient 。执行（柱）; //登录
+
+            HttpGet g =  new  HttpGet（“ http://www.zhihu.com/question/following ”）; //获取“我关注的问题”页面
+            CloseableHttpResponse r = httpClient 。执行（克）;
+            系统。出。的println（EntityUtils 。的toString（R 。 getEntity（）））;
+            r 。关（）;
+        } catch（IOException e）{
+            e 。的printStackTrace（）;
+        } finally {
+            尝试 {
+                httpClient 。关（）;
+            } catch（IOException e）{
+                e 。的printStackTrace（）;
+            }
+        }
+    }
+}
+
+代码2：
+import java.beans.PropertyChangeListener;
+import java.beans.PropertyChangeSupport;
+
+public class PropertyChangeSupportTest {
+
+    transient protected PropertyChangeSupport listeners = new PropertyChangeSupport( this );
+
+    public void addPropertyChangeListener(PropertyChangeListener listener) {
+        listeners.addPropertyChangeListener(listener);
+    }
+
+    protected void firePropertyChange(String prop, Object old, Object newValue) {
+        listeners.firePropertyChange(prop, old, newValue);
+    }
+
+    public void removePropertyChangeListener(PropertyChangeListener l) {
+        listeners.removePropertyChangeListener(l);
+    }
+}
+
+public class BeanTest extends PropertyChangeSupportTest {
+
+    public static final String TEST = "test";
+
+    private String name = "";
+
+    public void setName(String name) {
+        if (this.name.equals(name)) {
+            System.out.println("BeanTest 的 name 属性没有变化！");
+            return;
+        }
+        this.name = name;
+        firePropertyChange(TEST, null, name);
+    }
+
+    public String getName() {
+        return this.name;
+    }
+}
+
+import java.beans.PropertyChangeEvent;
+import java.beans.PropertyChangeListener;
+
+public class BeanTestListener implements PropertyChangeListener{
+
+    public void propertyChange(PropertyChangeEvent evt) {
+        if(evt.getPropertyName().equals(BeanTest.TEST))
+            System.out.println("BeanTest 的 name 属性变化！");
+        
+    }
+    public static void main(String[] args){
+        BeanTest test = new BeanTest();
+        test.addPropertyChangeListener(new BeanTestListener());
+        test.setName("fuxueliang");
+        test.setName("fuxueliang");
+        System.out.println(test.getName());
+    }
+
+}
